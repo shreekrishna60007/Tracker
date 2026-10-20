@@ -1646,7 +1646,14 @@ const TRACKER_SUPABASE_KEY = "sb_publishable_IhmLqnFhDan6jerkQlu9sg_WtNCP_jv";
 
 const trackerSupabase = window.supabase.createClient(
   TRACKER_SUPABASE_URL,
-  TRACKER_SUPABASE_KEY
+  TRACKER_SUPABASE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  }
 );
 
 let trackerAuthMode = "signin";
