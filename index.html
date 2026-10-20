@@ -1,0 +1,321 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#6c45db">
+  <title>Tracker - Expense & Budgets</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="icon" type="image/png" href="favicon.png">
+
+</head>
+<body>
+  <section id="authScreen" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="brand-icon">₹</span>
+        <div>
+          <h1>Tracker</h1>
+          <p>Expense &amp; Budgets</p>
+        </div>
+      </div>
+
+      <h2 id="authHeading">Welcome back!</h2>
+      <p id="authDescription">Sign in to access your personal money tracker.</p>
+
+      <form id="authForm">
+        <label for="authEmail">Email address</label>
+        <input
+          class="field full-field"
+          id="authEmail"
+          type="email"
+          autocomplete="email"
+          placeholder="you@example.com"
+          required
+        >
+
+        <label for="authPassword">Password</label>
+        <input
+          class="field full-field"
+          id="authPassword"
+          type="password"
+          autocomplete="current-password"
+          minlength="6"
+          placeholder="At least 6 characters"
+          required>
+
+        <div class="forgot-password-row">
+          <a href="#" id="forgotPasswordLink">Forgot password?</a>
+        </div>
+
+        <button class="btn primary-btn submit-btn" id="authSubmit" type="submit">
+          Sign in
+        </button>
+
+        <p id="authMessage" class="form-message" role="status" aria-live="polite"></p>
+      </form>
+      
+      <form id="resetPasswordForm" hidden>
+        <h2>Set a new password</h2>
+        <p>Choose a new password for your Tracker account.</p>
+
+        <label for="newPassword">New password</label>
+        <input
+          class="field full-field"
+          id="newPassword"
+          type="password"
+          autocomplete="new-password"
+          minlength="6"
+          placeholder="At least 6 characters"
+          required
+        >
+
+        <label for="confirmNewPassword">Confirm new password</label>
+        <input
+          class="field full-field"
+          id="confirmNewPassword"
+          type="password"
+          autocomplete="new-password"
+          minlength="6"
+          placeholder="Enter the password again"
+          required
+        >
+
+        <button class="btn primary-btn submit-btn" id="resetPasswordSubmit" type="submit">
+          Update password
+        </button>
+
+        <p id="resetPasswordMessage" class="form-message" role="status" aria-live="polite"></p>
+      </form>
+
+
+
+      <p class="auth-switch">
+        <span id="authSwitchText">Don't have an account?</span>
+        <button type="button" id="authToggle" class="text-btn">Create account</button>
+      </p>
+    </div>  
+  </section>
+
+  <div class="app" id="trackerApp" hidden>
+    
+    <aside class="sidebar">
+      <a class="brand" href="#" data-page="home">
+        <span class="brand-icon">₹</span>
+        <span>Tracker<small>Expense & Budgets</small></span>
+      </a>
+      <p class="nav-label">MENU</p>
+      <nav class="nav">
+        <button class="nav-item active" data-page="home"><span>⌂</span> Home</button>
+        <button class="nav-item" data-page="charts"><span>▥</span> Charts</button>
+        <button class="nav-item add-nav" data-page="add"><span>＋</span> Add transaction</button>
+        <button class="nav-item" data-page="reports"><span>▤</span> Reports</button>
+        <button class="nav-item" data-page="settings"><span>⚙</span> Settings</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="tip-icon">✦</div>
+        <strong>Small steps, big savings!</strong>
+        <p>Every rupee you track helps you build better habits.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="todayLabel">YOUR MONEY, YOUR RULES</p>
+          <h1 id="pageTitle">Good day! 👋</h1>
+        </div>
+        <div class="top-actions">
+          <span class="avatar" id="avatar">S</span>
+          <div><strong id="headerName">Student</strong><small>My wallet</small></div>
+        </div>
+      </header>
+
+      <section class="page active" id="page-home">
+        <div class="welcome-banner">
+          <div>
+            <span class="banner-tag">✦ YOUR FINANCIAL JOURNEY</span>
+            <h2>Make your money<br>work for <em>you.</em></h2>
+            <p>Track smart. Spend mindfully. Save for what matters.</p>
+            <button class="btn light-btn" data-page="add">+ Add transaction</button>
+          </div>
+          <div class="banner-art" aria-hidden="true">
+            <div class="coin coin-one">₹</div>
+            <div class="coin coin-two">✦</div>
+            <div class="wallet">▰<small>MY WALLET</small><strong>₹ ₹ ₹</strong></div>
+            <div class="coin coin-three">↗</div>
+          </div>
+        </div>
+
+        <div class="section-heading"><div><h2>Your overview</h2><p>Here's what's happening with your money.</p></div>
+          <button class="btn outline-btn" data-page="reports">View reports ↗</button>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card balance-card"><div class="stat-top"><span>Total balance</span><span class="stat-icon">₹</span></div><h2 id="totalBalance">₹0.00</h2><p>Income minus expenses</p><div class="stat-line"></div></article>
+          <article class="stat-card"><div class="stat-top"><span>Total income</span><span class="stat-icon mint">↙</span></div><h2 id="totalIncome">₹0.00</h2><p class="positive">Money received</p></article>
+          <article class="stat-card"><div class="stat-top"><span>Total expenses</span><span class="stat-icon pink">↗</span></div><h2 id="totalExpense">₹0.00</h2><p class="negative">Money spent</p></article>
+          <article class="stat-card"><div class="stat-top"><span>Saved this month</span><span class="stat-icon yellow">✦</span></div><h2 id="monthlySaved">₹0.00</h2><p>Income − expenses this month</p></article>
+        </div>
+
+        <div class="content-grid">
+          <article class="panel budget-panel">
+            <div class="panel-heading"><div><h3>Monthly budget</h3><p>Keep your spending in check</p></div><button class="text-btn" data-page="settings">Edit budget ↗</button></div>
+            <div class="budget-summary"><div><small>You've spent</small><h2 id="budgetSpent">₹0.00</h2></div><div class="budget-total"><small>Monthly limit</small><strong id="budgetLimit">₹5,000.00</strong></div></div>
+            <div class="progress-track"><div class="progress-fill" id="budgetProgress"></div></div>
+            <div class="progress-caption"><span id="budgetPercent">0% used</span><span id="budgetRemaining">₹5,000 left</span></div>
+            <div class="budget-note" id="budgetNote">✦ You're all set. Spend mindfully!</div>
+          </article>
+          <article class="panel quick-panel">
+            <div class="panel-heading"><div><h3>Quick actions</h3><p>Manage money in a tap</p></div></div>
+            <div class="quick-actions">
+              <button data-page="add"><span class="quick-icon purple">＋</span><strong>Add transaction</strong><small>Income or expense</small></button>
+              <button data-page="goals"><span class="quick-icon mint">◎</span><strong>Savings goals</strong><small>Save for your dreams</small></button>
+              <button data-page="borrow"><span class="quick-icon peach">↔</span><strong>Borrow & lend</strong><small>Keep track of dues</small></button>
+              <button data-page="reports"><span class="quick-icon blue">⇩</span><strong>Export data</strong><small>Download your records</small></button>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel recent-panel">
+          <div class="panel-heading"><div><h3>Recent transactions</h3><p>Your latest money moves</p></div><button class="text-btn" data-page="reports">View all ↗</button></div>
+          <div id="recentTransactions"></div>
+        </article>
+
+        <article class="panel goals-preview">
+          <div class="panel-heading"><div><h3>My savings goals ✨</h3><p>Little by little, you get there</p></div><button class="text-btn" data-page="goals">Manage goals ↗</button></div>
+          <div id="homeGoals"></div>
+        </article>
+      </section>
+
+      <section class="page" id="page-charts">
+        <div class="section-heading"><div><h2>Your money, visualized</h2><p>Understand your spending at a glance.</p></div><select id="chartPeriod" class="field"><option value="month">This month</option><option value="all">All time</option></select></div>
+        <div class="stats-grid compact-stats">
+          <article class="stat-card"><span>Income</span><h2 id="chartIncome">₹0.00</h2></article>
+          <article class="stat-card"><span>Expenses</span><h2 id="chartExpense">₹0.00</h2></article>
+          <article class="stat-card"><span>Net savings</span><h2 id="chartSavings">₹0.00</h2></article>
+        </div>
+        <div class="charts-grid">
+          <article class="panel chart-panel"><div class="panel-heading"><div><h3>Income vs expenses</h3><p>Compare your money in and out</p></div></div><div class="chart-box"><canvas id="incomeExpenseChart"></canvas></div></article>
+          <article class="panel chart-panel"><div class="panel-heading"><div><h3>Expense breakdown</h3><p>Where does your money go?</p></div></div><div class="chart-box"><canvas id="categoryChart"></canvas></div></article>
+          <article class="panel chart-panel wide-chart"><div class="panel-heading"><div><h3>Spending trend</h3><p>Track your daily spending habits</p></div></div><div class="chart-box trend-box"><canvas id="trendChart"></canvas></div></article>
+        </div>
+      </section>
+
+      <section class="page" id="page-add">
+        <div class="section-heading"><div><h2>Add transaction</h2><p>Every little expense counts. Keep it updated!</p></div></div>
+        <div class="form-layout">
+          <article class="panel transaction-form-panel">
+            <form id="transactionForm">
+              <label>Transaction type</label>
+              <div class="type-switch"><button type="button" class="type-btn selected expense-type" data-type="expense">↗ Expense</button><button type="button" class="type-btn" data-type="income">↙ Income</button></div>
+              <input type="hidden" id="transactionType" value="expense">
+              <label for="amount">Amount (₹)</label><div class="amount-input"><span>₹</span><input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required></div>
+              <label for="description">What was it for?</label><input class="field full-field" id="description" maxlength="100" placeholder="e.g. College canteen lunch" required>
+              <label for="category">Category</label><select class="field full-field" id="category" required></select>
+              <div class="two-fields"><div><label for="date">Date</label><input class="field full-field" type="date" id="date" required></div><div><label for="paymentMethod">Payment method</label><select class="field full-field" id="paymentMethod"><option>UPI</option><option>Cash</option><option>Debit card</option><option>Bank transfer</option><option>Other</option></select></div></div>
+              <label for="notes">Notes (optional)</label><textarea class="field full-field" id="notes" rows="3" maxlength="300" placeholder="Add a little note..."></textarea>
+              <button class="btn primary-btn submit-btn" type="submit">Save transaction ✓</button>
+              <p class="form-message" id="transactionMessage" role="status"></p>
+            </form>
+          </article>
+          <aside class="panel form-tip"><div class="tip-icon">✦</div><h3>Money tip of the day</h3><p>Before buying something, ask yourself: “Do I need it, or do I just want it right now?”</p><div class="tip-divider"></div><h4>Remember</h4><p>Small purchases add up. Tracking even ₹10 helps you understand your habits.</p></aside>
+        </div>
+      </section>
+
+      <section class="page" id="page-reports">
+        <div class="section-heading"><div><h2>Reports & transactions</h2><p>Your financial activity, all in one place.</p></div><button class="btn primary-btn" id="exportCsv">⇩ Export CSV</button></div>
+        <div class="stats-grid compact-stats">
+          <article class="stat-card"><span>Total income</span><h2 id="reportIncome">₹0.00</h2></article>
+          <article class="stat-card"><span>Total expenses</span><h2 id="reportExpense">₹0.00</h2></article>
+          <article class="stat-card"><span>Transactions</span><h2 id="reportCount">0</h2></article>
+        </div>
+        <article class="panel">
+          <div class="filter-row"><input class="field" id="searchTransactions" placeholder="⌕ Search transactions..."><select class="field" id="filterType"><option value="all">All types</option><option value="income">Income</option><option value="expense">Expenses</option></select><select class="field" id="filterMonth"><option value="all">All months</option></select></div>
+          <div id="allTransactions"></div>
+        </article>
+      </section>
+
+      <section class="page" id="page-goals">
+        <div class="section-heading"><div><h2>Savings goals ✨</h2><p>Dream it. Plan it. Save for it.</p></div></div>
+        <div class="form-layout">
+          <article class="panel"><h3>Create a goal</h3><p class="muted">Give yourself something exciting to save for.</p>
+            <form id="goalForm"><label for="goalName">Goal name</label><input class="field full-field" id="goalName" maxlength="60" placeholder="e.g. New headphones" required><label for="goalTarget">Target amount (₹)</label><input class="field full-field" id="goalTarget" type="number" min="1" step="0.01" placeholder="5000" required><label for="goalSaved">Already saved (₹)</label><input class="field full-field" id="goalSaved" type="number" min="0" step="0.01" value="0" required><label for="goalDate">Target date (optional)</label><input class="field full-field" type="date" id="goalDate"><button class="btn primary-btn submit-btn">Create savings goal</button></form>
+          </article>
+          <article class="panel"><h3>My goals</h3><p class="muted">Every rupee brings you closer.</p><div id="goalList"></div></article>
+        </div>
+      </section>
+
+      <section class="page" id="page-borrow">
+        <div class="section-heading"><div><h2>Borrow & lend ↔</h2><p>Keep track of money you owe or need back.</p></div></div>
+        <div class="stats-grid compact-stats"><article class="stat-card"><span>I owe</span><h2 id="iOwe">₹0.00</h2></article><article class="stat-card"><span>Owed to me</span><h2 id="owedToMe">₹0.00</h2></article><article class="stat-card"><span>Outstanding total</span><h2 id="outstanding">₹0.00</h2></article></div>
+        <div class="form-layout">
+          <article class="panel"><h3>Record a borrowing or lending</h3>
+            <form id="borrowForm"><label for="debtType">Type</label><select class="field full-field" id="debtType"><option value="borrow">I borrowed (I owe)</option><option value="lend">I lent (they owe me)</option></select><label for="debtPerson">Person's name</label><input class="field full-field" id="debtPerson" maxlength="60" placeholder="Friend or family member" required><label for="debtAmount">Amount (₹)</label><input class="field full-field" id="debtAmount" type="number" min="0.01" step="0.01" required placeholder="500"><label for="debtDate">Date</label><input class="field full-field" id="debtDate" type="date" required><label for="debtNote">Note (optional)</label><input class="field full-field" id="debtNote" maxlength="200" placeholder="e.g. Movie tickets"><button class="btn primary-btn submit-btn">Save record</button></form>
+          </article>
+          <article class="panel"><h3>Outstanding records</h3><div id="debtList"></div></article>
+        </div>
+      </section>
+
+      <section class="page" id="page-settings">
+        <div class="section-heading"><div><h2>Settings ⚙</h2><p>Make Tracker feel like yours.</p></div></div>
+        <div class="settings-grid">
+          <article class="panel"><h3>Personal preferences</h3><form id="settingsForm"><label for="userName">Your name</label><input class="field full-field" id="userName" maxlength="50" placeholder="Student">
+             <label for="profilePhoto">Profile photo</label>
+
+            <div class="profile-photo-upload">
+                <img
+                    id="profilePhotoPreview"
+                    class="profile-photo-preview"
+                    src=""
+                    alt="Profile photo preview"
+                    hidden>
+
+                <div class="profile-photo-actions">
+                    <input
+                        class="field full-field"
+                        type="file"
+                        id="profilePhoto"
+                        accept="image/png,image/jpeg,image/webp,image/gif">
+
+                    <button
+                        type="button"
+                        class="btn outline-btn"
+                        id="removeProfilePhoto">
+                        Remove photo
+                    </button>
+                </div>
+            </div>
+            <label for="currency">Currency</label><select class="field full-field" id="currency"><option value="INR">₹ Indian Rupee (INR)</option><option value="USD">$ US Dollar (USD)</option><option value="EUR">€ Euro (EUR)</option><option value="GBP">£ British Pound (GBP)</option><option value="BDT">৳ Bangladeshi Taka (BDT)</option><option value="NPR">रु Nepalese Rupee (NPR)</option></select><label for="monthlyBudgetInput">Monthly expense budget</label><input class="field full-field" id="monthlyBudgetInput" type="number" min="0" step="0.01" required><label class="toggle-row"><span><strong>Dark mode</strong><small>Easy on the eyes at night</small></span><input id="darkMode" type="checkbox"></label><button class="btn primary-btn su+bmit-btn">Save settings</button><p class="form-message" id="settingsMessage" role="status"></p></form></article>
+          <article class="panel"><h3>Data & privacy</h3><p class="muted">Your transactions are saved in this browser using localStorage. They are not automatically synced to another device.</p><button class="btn outline-btn submit-btn" id="backupJson">⇩ Download full backup</button><label for="importJson" class="btn outline-btn submit-btn import-label">⇧ Import backup JSON</label><input id="importJson" type="file" accept=".json,application/json" hidden><div class="danger-zone"><h4>Clear all data</h4><p>This permanently deletes your transactions, goals, debts, and preferences saved in this browser.</p><button class="btn danger-btn" id="clearData">Delete all data</button>
+          <div class="danger-zone logout-zone">
+            <h4>Account</h4>
+            <p>Sign out of your Tracker account on this device.</p>
+            <button type="button" class="btn danger-btn" id="logoutBtn">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              Log Out
+            </button>
+            <p id="logoutMessage" class="form-message" role="status" aria-live="polite"></p>
+          </div>
+          </div></article>
+        </div>
+      </section>
+
+      <footer><span>Made with 💜 for smarter money habits.</span><span>Tracker · Expense & Budgets</span></footer>
+    </main>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Mobile navigation">
+    <button class="nav-item active" data-page="home"><span>⌂</span><small>Home</small></button>
+    <button class="nav-item" data-page="charts"><span>▥</span><small>Charts</small></button>
+    <button class="nav-item mobile-add" data-page="add"><span>＋</span><small>Add</small></button>
+    <button class="nav-item" data-page="reports"><span>▤</span><small>Reports</small></button>
+    <button class="nav-item" data-page="settings"><span>⚙</span><small>Settings</small></button>
+  </nav>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="script.js"></script>
+</body>
+</html>
