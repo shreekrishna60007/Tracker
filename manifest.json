@@ -1,0 +1,24 @@
+
+{
+  "name": "Tracker - Expense & Budgets",
+  "short_name": "Tracker",
+  "description": "Track expenses, manage budgets, and reach your savings goals.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f7ff",
+  "theme_color": "#6c45db",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
