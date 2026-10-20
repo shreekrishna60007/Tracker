@@ -2028,7 +2028,7 @@ if (cloudSettings) {
     document.getElementById("trackerApp").hidden = false;
 
     trackerCloudReady = true;
-    showToast("Tracker connected to Supabase!");
+    //showToast("Tracker connected to Supabase!");
   } catch (error) {
     console.error("Tracker cloud connection failed:", error);
 
