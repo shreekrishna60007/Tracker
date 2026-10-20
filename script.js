@@ -1354,6 +1354,89 @@ if (removeProfilePhotoButton) {
 }
 
 
+/* ---------- SAVE SETTINGS TO SUPABASE ---------- */
+
+const settingsForm = document.getElementById("settingsForm");
+
+if (settingsForm) {
+  settingsForm.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (!trackerCloudReady || !trackerCurrentUserId) {
+      showToast("Please sign in again before saving settings.");
+      return;
+    }
+
+    const name =
+      document.getElementById("userName").value.trim() || "Student";
+
+    const currency =
+      document.getElementById("currency").value;
+
+    const budget =
+      Number(document.getElementById("monthlyBudgetInput").value);
+
+    const dark =
+      document.getElementById("darkMode").checked;
+
+    if (!Number.isFinite(budget) || budget < 0) {
+      showToast("Please enter a valid monthly budget.");
+      return;
+    }
+
+    const saveButton = settingsForm.querySelector(
+      'button[type="submit"]'
+    );
+
+    if (saveButton) saveButton.disabled = true;
+
+    try {
+      const { data: updatedRows, error } = await trackerSupabase
+        .from("tracker_settings")
+        .update({
+          name,
+          currency,
+          budget: Math.round(budget * 100) / 100,
+          dark
+        })
+        .eq("user_id", trackerCurrentUserId)
+        .select("user_id");
+
+      if (error) throw error;
+
+      if (!updatedRows || updatedRows.length === 0) {
+        throw new Error(
+          "No settings row was updated. Please sign in again and check your Supabase settings."
+        );
+      }
+
+      data.settings.name = name;
+      data.settings.currency = currency;
+      data.settings.budget = Math.round(budget * 100) / 100;
+      data.settings.dark = dark;
+
+      saveData();
+      applySettings();
+      renderAll();
+      populateSettings();
+
+      const message = document.getElementById("settingsMessage");
+      if (message) {
+        message.textContent = "✓ Settings saved successfully.";
+      }
+
+      showToast("Settings saved successfully!");
+    } catch (error) {
+      console.error("Could not save Tracker settings:", error);
+
+      showToast("Settings could not be saved: " + error.message);
+    } finally {
+      if (saveButton) saveButton.disabled = false;
+    }
+  });
+}
+
+
 document.getElementById("darkMode").addEventListener("change", async event => {
   const previousDark = data.settings.dark;
   const newDark = event.target.checked;
