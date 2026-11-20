@@ -13,7 +13,15 @@
 
 </head>
 <body>
-  <section id="authScreen" class="auth-screen">
+  <div id="appLoader" class="app-loader" role="status" aria-live="polite">
+    <div class="loader-box">
+      <span class="brand-icon">₹</span>
+      <div class="loader-spinner" aria-hidden="true"></div>
+      <p>Loading your Tracker...</p>
+    </div>
+  </div>
+
+  <section id="authScreen" class="auth-screen" hidden>
     <div class="auth-card">
       <div class="auth-brand">
         <span class="brand-icon">₹</span>
@@ -154,7 +162,7 @@
           <button class="btn outline-btn" data-page="reports">View reports ↗</button>
         </div>
         <div class="stats-grid">
-          <article class="stat-card balance-card"><div class="stat-top"><span>Total balance</span><span class="stat-icon">₹</span></div><h2 id="totalBalance">₹0.00</h2><p>Income minus expenses</p><div class="stat-line"></div></article>
+          <article class="stat-card balance-card"><div class="stat-top"><span>Total balance</span><span class="stat-icon">₹</span></div><h2 id="totalBalance">₹0.00</h2><p>Includes borrowed &amp; lent money</p><div class="stat-line"></div></article>
           <article class="stat-card"><div class="stat-top"><span>Total income</span><span class="stat-icon mint">↙</span></div><h2 id="totalIncome">₹0.00</h2><p class="positive">Money received</p></article>
           <article class="stat-card"><div class="stat-top"><span>Total expenses</span><span class="stat-icon pink">↗</span></div><h2 id="totalExpense">₹0.00</h2><p class="negative">Money spent</p></article>
           <article class="stat-card"><div class="stat-top"><span>Saved this month</span><span class="stat-icon yellow">✦</span></div><h2 id="monthlySaved">₹0.00</h2><p>Income − expenses this month</p></article>
