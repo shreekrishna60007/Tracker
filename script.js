@@ -130,16 +130,24 @@ function transactionsForMonth(month = currentMonth()) {
   return data.transactions.filter(t => t.date?.startsWith(month));
 }
 
+const LOAN_CATEGORIES = ["borrowed", "lent", "loan-repaid", "loan-received"];
+
+function isLoan(t) {
+  return LOAN_CATEGORIES.includes(t.category);
+}
+
 function getIncome(items) {
-  return sum(items, t => t.type === "income");
+  return sum(items, t => t.type === "income" && !isLoan(t));
 }
 
 function getExpenses(items) {
-  return sum(items, t => t.type === "expense");
+  return sum(items, t => t.type === "expense" && !isLoan(t));
 }
 
+// Balance includes ALL money movement, including borrowed/lent money.
 function getBalance(items = data.transactions) {
-  return getIncome(items) - getExpenses(items);
+  return sum(items, t => t.type === "income") -
+         sum(items, t => t.type === "expense");
 }
 
 function showToast(message) {
@@ -152,6 +160,9 @@ function showToast(message) {
     toast.classList.remove("show");
   }, 2800);
 }
+
+
+
 
 /* ---------- 2. NAVIGATION ---------- */
 
@@ -361,24 +372,39 @@ const categoryIcons = {
   scholarship: "🎓",
   gift: "🎁",
   refund: "↩️",
+  borrowed: "🤝",
+  lent: "🤝",
+  "loan-repaid": "↩️",
+  "loan-received": "💰",
   other: "📦"
 };
+
+const loanLabels = {
+  borrowed: "Borrowed",
+  lent: "Lent",
+  "loan-repaid": "Loan repaid",
+  "loan-received": "Loan received"
+};
+
 
 function transactionRow(t, showActions = false) {
   const income = t.type === "income";
   const icon = categoryIcons[t.category] || "💰";
+  const label = loanLabels[t.category] || t.category || "other";
+  // Loan transactions are managed from the Borrow & lend page.
+  const canDelete = showActions && !isLoan(t);
 
   return `
     <div class="transaction-row">
       <div class="transaction-icon ${income ? "income" : ""}">${icon}</div>
       <div class="transaction-info">
         <strong>${escapeHTML(t.description)}</strong>
-        <small>${escapeHTML(t.category || "other")} · ${formatDate(t.date)} · ${escapeHTML(t.payment || "Other")}</small>
+        <small>${escapeHTML(label)} · ${formatDate(t.date)} · ${escapeHTML(t.payment || "Other")}</small>
       </div>
       <div class="transaction-amount ${income ? "income" : "expense"}">
         ${income ? "+" : "−"}${money(t.amount)}
       </div>
-      ${showActions ? `
+      ${canDelete ? `
         <div class="row-actions">
           <button class="icon-btn" data-delete-transaction="${escapeHTML(t.id)}" aria-label="Delete transaction">✕</button>
         </div>
@@ -437,13 +463,13 @@ function renderDashboard() {
 
   const income = getIncome(all);
   const expenses = getExpenses(all);
-  const saved = getBalance(monthly);
+  const saved = getBalance(monthly) - getExpenses(monthly);;
   const spent = getExpenses(monthly);
   const budget = Math.max(0, Number(data.settings.budget) || 0);
   const percent = budget > 0 ? (spent / budget) * 100 : spent > 0 ? 100 : 0;
   const remaining = budget - spent;
 
-  document.getElementById("totalBalance").textContent = money(income - expenses);
+  document.getElementById("totalBalance").textContent = money(getBalance(all));
   document.getElementById("totalIncome").textContent = money(income);
   document.getElementById("totalExpense").textContent = money(expenses);
   document.getElementById("monthlySaved").textContent = money(saved);
@@ -651,6 +677,20 @@ document.addEventListener("click", async event => {
 
 /* ---------- 8. BORROW & LEND ---------- */
 
+async function insertLoanTransaction(t) {
+  await cloudInsert("tracker_transactions", {
+    id: t.id,
+    type: t.type,
+    amount: t.amount,
+    description: t.description,
+    category: t.category,
+    date: t.date,
+    payment: t.payment,
+    notes: t.notes,
+    created_at: t.createdAt
+  });
+}
+
 document.getElementById("borrowForm").addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -665,31 +705,54 @@ document.getElementById("borrowForm").addEventListener("submit", async event => 
     return;
   }
 
-const debt = {
-  id: uid(),
-  type,
-  person,
-  amount: Math.round(amount * 100) / 100,
-  paid: 0,
-  date,
-  note
-};
+  const debt = {
+    id: uid(),
+    type,
+    person,
+    amount: Math.round(amount * 100) / 100,
+    paid: 0,
+    date,
+    note
+  };
 
-try {
-  await cloudInsert("tracker_debts", debt);
+  // Borrowing brings money in; lending sends money out.
+  const loanTx = {
+    id: debt.id + "-open",
+    type: type === "borrow" ? "income" : "expense",
+    amount: debt.amount,
+    description: type === "borrow" ? `Borrowed from ${person}` : `Lent to ${person}`,
+    category: type === "borrow" ? "borrowed" : "lent",
+    date,
+    payment: "Other",
+    notes: note,
+    createdAt: new Date().toISOString()
+  };
 
-  data.debts.push(debt);
-  saveData();
-} catch (error) {
-  console.error("Could not save debt:", error);
-  showToast("Debt was not saved: " + error.message);
-  return;
-}
+  try {
+    await cloudInsert("tracker_debts", debt);
+
+    try {
+      await insertLoanTransaction(loanTx);
+    } catch (txError) {
+      // Roll back the debt so the two never get out of sync.
+      await cloudDelete("tracker_debts", debt.id).catch(() => {});
+      throw txError;
+    }
+
+    data.debts.push(debt);
+    data.transactions.push(loanTx);
+    saveData();
+  } catch (error) {
+    console.error("Could not save debt:", error);
+    showToast("Record was not saved: " + error.message);
+    return;
+  }
+
   event.target.reset();
   document.getElementById("debtDate").value = todayISO();
 
   renderAll();
-  showToast("Borrow/lend record saved!");
+  showToast(type === "borrow" ? "Borrowed amount added to your balance!" : "Lent amount deducted from your balance!");
 });
 
 function debtRemaining(debt) {
@@ -759,47 +822,79 @@ document.addEventListener("click", async event => {
       return;
     }
 
-  const previousPaid = Number(debt.paid || 0);
-  debt.paid = Math.round((previousPaid + amount) * 100) / 100;
+    const roundedAmount = Math.round(amount * 100) / 100;
+    const newPaid = Math.round((Number(debt.paid || 0) + roundedAmount) * 100) / 100;
 
-  try {
-    await cloudUpdate("tracker_debts", debt.id, {
-      paid: debt.paid
-    });
+    // Repaying what you borrowed sends money out; getting back what you lent brings it in.
+    const settleTx = {
+      id: debt.id + "-pay-" + uid(),
+      type: debt.type === "borrow" ? "expense" : "income",
+      amount: roundedAmount,
+      description: debt.type === "borrow"
+        ? `Repaid ${debt.person}`
+        : `Received from ${debt.person}`,
+      category: debt.type === "borrow" ? "loan-repaid" : "loan-received",
+      date: todayISO(),
+      payment: "Other",
+      notes: debt.note || "",
+      createdAt: new Date().toISOString()
+    };
 
-    saveData();
-    renderAll();
-    showToast("Settlement recorded!");
-  } catch (error) {
-    debt.paid = previousPaid;
-    console.error("Could not update debt settlement:", error);
-    showToast("Settlement failed: " + error.message);
+    try {
+      await insertLoanTransaction(settleTx);
+
+      try {
+        await cloudUpdate("tracker_debts", debt.id, { paid: newPaid });
+      } catch (updateError) {
+        await cloudDelete("tracker_transactions", settleTx.id).catch(() => {});
+        throw updateError;
+      }
+
+      debt.paid = newPaid;
+      data.transactions.push(settleTx);
+      saveData();
+      renderAll();
+      showToast("Settlement recorded!");
+    } catch (error) {
+      console.error("Could not update debt settlement:", error);
+      showToast("Settlement failed: " + error.message);
+    }
+    return;
   }
+
+  const deleteButton = event.target.closest("[data-delete-debt]");
+  if (deleteButton) {
+    const debt = data.debts.find(d => d.id === deleteButton.dataset.deleteDebt);
+    if (!debt) return;
+
+    const linked = data.transactions.filter(t =>
+      String(t.id).startsWith(debt.id + "-")
+    );
+
+    const warning = linked.length
+      ? `\n\nIts ${linked.length} linked transaction(s) will also be removed and your balance will be adjusted.`
+      : "";
+
+    if (!confirm(`Delete the record for ${debt.person}?${warning}`)) return;
+
+    try {
+      for (const t of linked) {
+        await cloudDelete("tracker_transactions", t.id);
+        data.transactions = data.transactions.filter(x => x.id !== t.id);
+      }
+
+      await cloudDelete("tracker_debts", debt.id);
+
+      data.debts = data.debts.filter(d => d.id !== debt.id);
+      saveData();
+      renderAll();
+      showToast("Record deleted.");
+    } catch (error) {
+      console.error("Could not delete debt:", error);
+      renderAll();
+      showToast("Delete failed: " + error.message);
+    }
   }
-
- const deleteButton = event.target.closest("[data-delete-debt]");
-
-if (deleteButton) {
-  const debt = data.debts.find(
-    d => d.id === deleteButton.dataset.deleteDebt
-  );
-
-  if (!debt) return;
-
-  if (!confirm(`Delete the record for ${debt.person}?`)) return;
-
-  try {
-    await cloudDelete("tracker_debts", debt.id);
-
-    data.debts = data.debts.filter(d => d.id !== debt.id);
-    saveData();
-    renderAll();
-    showToast("Record deleted.");
-  } catch (error) {
-    console.error("Could not delete debt:", error);
-    showToast("Delete failed: " + error.message);
-  }
-}
 });
 
 /* ---------- 9. REPORTS & FILTERS ---------- */
@@ -994,7 +1089,7 @@ function renderCharts() {
 
   const categoryTotals = {};
 
-  items.filter(t => t.type === "expense").forEach(t => {
+ items.filter(t => t.type === "expense" && !isLoan(t)).forEach(t => {
     categoryTotals[t.category || "other"] =
       (categoryTotals[t.category || "other"] || 0) + Number(t.amount || 0);
   });
@@ -1437,38 +1532,38 @@ if (settingsForm) {
 }
 
 
-document.getElementById("darkMode").addEventListener("change", async event => {
-  const previousDark = data.settings.dark;
-  const newDark = event.target.checked;
+// document.getElementById("darkMode").addEventListener("change", async event => {
+//   const previousDark = data.settings.dark;
+//   const newDark = event.target.checked;
 
-  if (!trackerCloudReady || !trackerCurrentUserId) {
-    event.target.checked = previousDark;
-    showToast("Please sign in and try again.");
-    return;
-  }
+//   if (!trackerCloudReady || !trackerCurrentUserId) {
+//     event.target.checked = previousDark;
+//     showToast("Please sign in and try again.");
+//     return;
+//   }
 
-  try {
-    const { error } = await trackerSupabase
-      .from("tracker_settings")
-      .update({ dark: newDark })
-      .eq("user_id", trackerCurrentUserId);
+//   try {
+//     const { error } = await trackerSupabase
+//       .from("tracker_settings")
+//       .update({ dark: newDark })
+//       .eq("user_id", trackerCurrentUserId);
 
-    if (error) throw error;
+//     if (error) throw error;
 
-    data.settings.dark = newDark;
-    applySettings();
-    saveData();
+//     data.settings.dark = newDark;
+//     applySettings();
+//     saveData();
 
-    if (currentPage === "charts") renderCharts();
-  } catch (error) {
-    event.target.checked = previousDark;
-    data.settings.dark = previousDark;
-    applySettings();
+//     if (currentPage === "charts") renderCharts();
+//   } catch (error) {
+//     event.target.checked = previousDark;
+//     data.settings.dark = previousDark;
+//     applySettings();
 
-    console.error("Could not save dark mode:", error);
-    showToast("Dark mode was not saved: " + error.message);
-  }
-});
+//     console.error("Could not save dark mode:", error);
+//     showToast("Dark mode was not saved: " + error.message);
+//   }
+// });
 
 /* ---------- 13. BACKUP & RESTORE ---------- */
 
@@ -1873,6 +1968,13 @@ if (resetPasswordForm) {
 let trackerCloudReady = false;
 let trackerCurrentUserId = null;
 
+function hideAppLoader() {
+  const loader = document.getElementById("appLoader");
+  if (!loader) return;
+  loader.classList.add("hide");
+  setTimeout(() => loader.remove(), 350);
+}
+
 (async function checkTrackerSession() {
   try {
     const { data: sessionData, error } =
@@ -1887,19 +1989,23 @@ let trackerCurrentUserId = null;
     // Keep the password-reset screen separate from the dashboard.
     if (isPasswordReset) {
       showResetPasswordForm();
-      return;
+      return; // the finally block reveals the auth screen
     }
 
-    // Automatically reopen Tracker when a valid session exists.
+    // Already logged in: open the app directly, never flash the login page.
     if (sessionData.session) {
       await connectTrackerCloud();
     }
   } catch (error) {
     console.error("Could not restore Tracker session:", error);
+  } finally {
+    // Show the login screen only if the app did not open.
+    if (document.getElementById("trackerApp").hidden) {
+      document.getElementById("authScreen").hidden = false;
+    }
+    hideAppLoader();
   }
 })();
-
-
 
 
 /* ---------- 17. TRACKER CLOUD INITIALIZATION ---------- */
